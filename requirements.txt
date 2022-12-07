@@ -1,1 +1,1 @@
-python3 -m pip install torch, torchvision, fire, pandas, pymysql, meson-python, scipy, scikit-learn
+python3 -m pip install torch torchvision fire pandas pymysql meson-python scipy scikit-learn
