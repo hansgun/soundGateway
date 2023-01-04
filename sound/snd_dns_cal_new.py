@@ -8,11 +8,18 @@ MODULE_DIR = 'util'
 sys.path.append(os.path.join(HOME_PATH, MODULE_DIR)) # setup sys dir
 from logs import paiplog
 
-NEIGHBOR_SIZE = 9
-SEARCH_SIZE = 128
+# NEIGHBOR_SIZE = 9
+# SEARCH_SIZE = 128
+
+## test params
+## 18, 180
+## 52, 156
+## 104 104 
+NEIGHBOR_SIZE = 104 ## DIMEN_N = 209 for 1sec... 44100 ** (1/2)
+SEARCH_SIZE = 104
 
 def normalization(test_sound_2d : np.ndarray ) -> int :
-    min_val, max_val = np.min(test_sound_2d).astype(np.int32), np.max(test_sound_2d).astype(np.int32)
+    min_val, max_val = np.min(test_sound_2d), np.max(test_sound_2d)
     return ((test_sound_2d - min_val) / (max_val - min_val) * 255).astype(int)
 
 
@@ -21,10 +28,10 @@ def reshape_snd_data(test_sound_2d_norm : np.ndarray ) -> list :
     DIMEN_N = int(round(math.sqrt(test_sound_2d_norm.shape[1]), 0) - 1)
     DIMEN_N_2 = DIMEN_N ** 2
     ND_LIST = []
-
+    # print(f"snd_dns_cal_new.reshape_snd_data ::: DIMEN_N : {DIMEN_N}")
     for x in test_sound_2d_norm:
-        ND_LIST.append(x[:DIMEN_N_2].reshape(-1, DIMEN_N))
-    return ND_LIST
+        ND_LIST.append(x[:DIMEN_N_2].reshape(-1, DIMEN_N)) ### .T
+    return np.asarray(ND_LIST)
 
 
 def get_pages(test_sound_2d , search_size : int = SEARCH_SIZE, neighbor_size: int = NEIGHBOR_SIZE) :
@@ -52,8 +59,9 @@ def get_pages(test_sound_2d , search_size : int = SEARCH_SIZE, neighbor_size: in
 
 
 @njit
-def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : int ) :
+def distance_matrix_multi(mat_x , search_win  , search_size : int , neighbor_size : int ) :
     """
+    calculate distance matrix for multi pages...
     :param mat_x: neighborhood window maxrix
     :param search_win: search window matrix
     :param search_size:
@@ -69,11 +77,29 @@ def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : in
     return out.reshape(search_size, search_size, 1)
 
 
-def cal_dns_mat(sliced_array , per_length : int , search_size : int =SEARCH_SIZE, neighbor_size : int =NEIGHBOR_SIZE) :
+@njit
+def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : int ) :
+    """
+    calculate distance a matrix for ONE pages...
+    :param mat_x: neighborhood window maxrix
+    :param search_win: search window matrix
+    :param search_size:
+    :param neighbor_size: size
+    :return:
+    todo :: 결과 검증 하기
+    """
+    out = np.empty((search_size, search_size))
+    for x_in in range(search_size):
+        for y_in in range(search_size):
+            out[x_in, y_in] = np.sqrt(
+                np.sum((mat_x[x_in:x_in + neighbor_size, y_in:y_in + neighbor_size] - search_win) ** 2))
+    return out
+
+
+def cal_dns_mat_multi(sliced_array, search_size : int =SEARCH_SIZE, neighbor_size : int =NEIGHBOR_SIZE) :
     """
     matrix array에 대한 dns 계산하여 np array (SEARCH_SIZE X SEARCH_SIZE X len(ND_LIST)) 를 return
     """
-
     # cent of matrix position
     CENT_P : tuple(int,int) = (search_size // 2 + neighbor_size // 2, search_size // 2 + neighbor_size // 2)
 
@@ -96,6 +122,27 @@ def cal_dns_mat(sliced_array , per_length : int , search_size : int =SEARCH_SIZE
     # get a mean value of each cell finally
     return return_result
 
+def cal_dns_mat(sliced_array, search_size : int =SEARCH_SIZE, neighbor_size : int =NEIGHBOR_SIZE) :
+    """
+    matrix array에 대한 dns 계산하여 np array (SEARCH_SIZE X SEARCH_SIZE X len(ND_LIST)) 를 return
+    """
+    # cent of matrix position
+    CENT_P : tuple(int,int) = (search_size // 2 + neighbor_size // 2, search_size // 2 + neighbor_size // 2)
+    
+    # result array
+    return_result = np.zeros((sliced_array.shape[0], search_size, search_size))
+
+    # for phase
+    for ind_mat, mat_x in enumerate(sliced_array):  # number of nd_array
+        # if ind_mat % 100 == 0 : print('{} of {}'.format(ind_mat,len(paged_norm_sliced)))
+        search_win = mat_x[CENT_P[0] - (neighbor_size // 2):CENT_P[0] + (neighbor_size // 2),
+                        CENT_P[1] - (neighbor_size // 2):CENT_P[1] + (neighbor_size // 2)].copy()
+        # print(distance_matrix(mat_x, search_win, search_size, neighbor_size))
+        return_result[ind_mat, :, :] = distance_matrix(mat_x, search_win, search_size, neighbor_size)
+
+    # get a mean value of each cell finally
+    return return_result
+
 def createFolder(directory):
     try:
         if not os.path.exists(directory):
@@ -110,7 +157,7 @@ if __name__ == "__main__":
     import snd_loader
 
     HOME_PATH = './'
-    # HOME_PATH = '/Users/hansgun/Documents/code/python/sound'
+    # HOME_PATH = '/Users/hansgun/Documents/code/python/soundGateway'
     # DATA_DIR = 'data'
     # MODULE_DIR = 'farms'
     OUTPUT_DIR = 'out'
@@ -118,7 +165,7 @@ if __name__ == "__main__":
 
 
     # check exec time start
-
+    # print(f"SEARCH_SIZE : {SEARCH_SIZE}, NEIGHBOR_SIZE : {NEIGHBOR_SIZE}")
     start_time = time.time()
 
     ''' sys.argvs
@@ -132,8 +179,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 : raise Exception("Not enough number of params")
     checkExtender = os.path.splitext(sys.argv[2])[1]
 
-    print(f"checkExtender : {checkExtender}")
-
     if not checkExtender :
         wav_file_str = os.path.join(sys.argv[1] + '/' + sys.argv[2]+'.flac')
     else :
@@ -143,39 +188,46 @@ if __name__ == "__main__":
     # 2. generate sound list... from parameters...
     samplerate, sliced = snd_loader.snd_loader(wav_file_str, 1, 1).get_snd_df()
 
-    # 3. normalization
-    norm_sliced = normalization(sliced)
-
     # 4. reshape
     reshaped = reshape_snd_data(np.array(sliced))
 
     # 5. list divide by neighbor_size & search_size. to pages
-    paged_norm_sliced = get_pages(reshaped)
+    # 사용안함.. 1초당 하나의 이미지로 계산
+    # paged_norm_sliced = get_pages(reshaped)
 
     # 6. calculate dns matrix
-    result = cal_dns_mat(np.asarray(paged_norm_sliced), per_length=len(paged_norm_sliced[0]))
+    result = cal_dns_mat(np.asarray(reshaped))
 
+    # 7. normalization
+    result = normalization(result)
     #print('elapsed : ', time.time() - start_time)
 
-    # 7. save result to pickle data format
-    # import pickle
-    #
-    # with open(os.path.join(HOME_PATH,OUTPUT_DIR,'data_real_wave_680.pickle'), 'wb') as f:
-    #    pickle.dump(result, f, pickle.HIGHEST_PROTOCOL)
-
-    # 8. ploting
     # plt.imshow(result[:, :, 10], cmap='gray')
+
     # 8. create directory 
     createFolder(sys.argv[1]+'/result_image/')
 
+    # 9. return result
+    #    print fig_name/score format
+    # results_list = []
     #print(f'result shape : {result.shape}')
-    for i in range(result.shape[2]) : 
-        fig_name =  sys.argv[1] + '/result_image/' + sys.argv[2] + '_' + str(i) +'.png'
-        plt.imsave(fig_name, result[:,:,i], cmap='gray')
+    for i in range(result.shape[0]) : 
+        fig_name =  sys.argv[1] + '/result_image/' + sys.argv[2].split('.')[0] + '_' + str(i).zfill(2) +'.png'
+        # fig_name =  '../output/ilt_20211108_20211109_TEST/' + sys.argv[2].split('.')[0] + '_' + str(i).zfill(2) +'.png'
+        plt.imsave(fig_name, result[i,:,:], cmap='gray')
+        score_temp = str(np.round(np.mean(result[:,:,i]),2))
+        counts = np.sum(np.where(result[:,:,i] > 10, 1, 0))
+        # results_list.append([sys.argv[2].split('.')[0] + '_' + str(i).zfill(2) +'.png',score_temp])
+        print(f"{fig_name}/{score_temp}")
+        # print(f"{sys.argv[2].split('.')[0] + '_' + str(i).zfill(2) +'.png'} : score : {score_temp}, min : {np.round(np.min(result[:,:,i]),1)}, max : {np.round(np.max(result[:,:,i]),1)}, counts : {str(counts)}")
 
-        score_temp = str(np.round(np.mean(result[:,:,i])/1000,2))
-        print(fig_name + '/' + score_temp)
+    # import pandas as pd
+    # import pickle
+    # df = pd.DataFrame(results_list, columns = ['fileName', 'score'])
 
-    # AE
-    os.system(f"python3 AE_predict.py --path {sys.argv[1]+'/result_image/'} --fileName {sys.argv[2]}")
+    # with open('../output/ilt_1108_1109.pickle','wb') as f : 
+    #     pickle.dump(df,f)
+
+    # 9. AE 실행
+    # os.system(f"python3 AE_predict.py --path {sys.argv[1]+'/result_image/'} --fileName {sys.argv[2]}")
 
