@@ -62,12 +62,14 @@ def get_pages(test_sound_2d , search_size : int = SEARCH_SIZE, neighbor_size: in
 def distance_matrix_multi(mat_x , search_win  , search_size : int , neighbor_size : int ) :
     """
     calculate distance matrix for multi pages...
+    기존 distance 계산 함수. 
+    mat_x가 여러 장 넘어올 경우 (N*N*M, 3차원) 각 matrix 당, NW, SW의 distance를 계산 후에, 
+    전체 matrix의 각 matrix point 당 평균을 계산하여 return 하는 함수 
     :param mat_x: neighborhood window maxrix
     :param search_win: search window matrix
     :param search_size:
     :param neighbor_size: size
-    :return:
-    todo :: 결과 검증 하기
+    :return: 3차원
     """
     out = np.empty((search_size, search_size))
     for x_in in range(search_size):
@@ -81,12 +83,14 @@ def distance_matrix_multi(mat_x , search_win  , search_size : int , neighbor_siz
 def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : int ) :
     """
     calculate distance a matrix for ONE pages...
+    mat_x 가 한 장의 matrix로 넘어온다. 즉.. N*N 사이즈로 넘어옴 (2차원)
+    NW, SW로 matrix의 거리 계산 후 한장의 결과물을 return 함, 아마두 NW의 사이즈와 동일
     :param mat_x: neighborhood window maxrix
     :param search_win: search window matrix
     :param search_size:
     :param neighbor_size: size
-    :return:
-    todo :: 결과 검증 하기
+    :return: 2차원
+    
     """
     out = np.empty((search_size, search_size))
     for x_in in range(search_size):
@@ -99,6 +103,11 @@ def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : in
 def cal_dns_mat_multi(sliced_array, search_size : int =SEARCH_SIZE, neighbor_size : int =NEIGHBOR_SIZE) :
     """
     matrix array에 대한 dns 계산하여 np array (SEARCH_SIZE X SEARCH_SIZE X len(ND_LIST)) 를 return
+    최초 생성 함수. 
+    여러 장의 matrix가 넘어올 경우 개별 matrix에 대한 계산 후 이에 대하여 마지막에 
+    axis==2에 대한 np.mean을 수행하여 2차원의 평균 값을 처리하여 return.
+    return 직전의 
+    return_result[:, :, ind_mat] = np.mean(result_mat, axis=2) 부분이 다르다 
     """
     # cent of matrix position
     CENT_P : tuple(int,int) = (search_size // 2 + neighbor_size // 2, search_size // 2 + neighbor_size // 2)
@@ -124,7 +133,9 @@ def cal_dns_mat_multi(sliced_array, search_size : int =SEARCH_SIZE, neighbor_siz
 
 def cal_dns_mat(sliced_array, search_size : int =SEARCH_SIZE, neighbor_size : int =NEIGHBOR_SIZE) :
     """
-    matrix array에 대한 dns 계산하여 np array (SEARCH_SIZE X SEARCH_SIZE X len(ND_LIST)) 를 return
+    matrix array에 대한 dns 계산하여 np array (SEARCH_SIZE X SEARCH_SIZE) 를 return
+    distance_matrix function과 마찬가지로 한 장의 matrix에 대한 계산 후 return 하는 함수 
+    여러 장이 아닌 한 장 처리를 위하여 for phase 가 단일 이다. 
     """
     # cent of matrix position
     CENT_P : tuple(int,int) = (search_size // 2 + neighbor_size // 2, search_size // 2 + neighbor_size // 2)
