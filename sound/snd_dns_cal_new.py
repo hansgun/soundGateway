@@ -62,9 +62,12 @@ def get_pages(test_sound_2d , search_size : int = SEARCH_SIZE, neighbor_size: in
 def distance_matrix_multi(mat_x , search_win  , search_size : int , neighbor_size : int ) :
     """
     calculate distance matrix for multi pages...
+    성능 향상을 위해서 numba 패키지 활용
+    ======================================================================
     기존 distance 계산 함수. 
     mat_x가 여러 장 넘어올 경우 (N*N*M, 3차원) 각 matrix 당, NW, SW의 distance를 계산 후에, 
     전체 matrix의 각 matrix point 당 평균을 계산하여 return 하는 함수 
+    ======================================================================
     :param mat_x: neighborhood window maxrix
     :param search_win: search window matrix
     :param search_size:
@@ -83,8 +86,11 @@ def distance_matrix_multi(mat_x , search_win  , search_size : int , neighbor_siz
 def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : int ) :
     """
     calculate distance a matrix for ONE pages...
+    성능 향상을 위해서 numba 패키지 활용
+    ======================================================================
     mat_x 가 한 장의 matrix로 넘어온다. 즉.. N*N 사이즈로 넘어옴 (2차원)
     NW, SW로 matrix의 거리 계산 후 한장의 결과물을 return 함, 아마두 NW의 사이즈와 동일
+    ======================================================================
     :param mat_x: neighborhood window maxrix
     :param search_win: search window matrix
     :param search_size:
@@ -190,6 +196,9 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 : raise Exception("Not enough number of params")
     checkExtender = os.path.splitext(sys.argv[2])[1]
 
+    ## 사운드 파일 확장자 체크.. 
+    ## 없으면 flac 확장자를 강제로 추가. 
+    ## 있을 경우에는 wav 파일로 
     if not checkExtender :
         wav_file_str = os.path.join(sys.argv[1] + '/' + sys.argv[2]+'.flac')
     else :
