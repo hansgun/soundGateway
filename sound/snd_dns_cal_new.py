@@ -61,6 +61,7 @@ def get_pages(test_sound_2d , search_size : int = SEARCH_SIZE, neighbor_size: in
 @njit
 def distance_matrix_multi(mat_x , search_win  , search_size : int , neighbor_size : int ) :
     """
+    !!!!!!!!!!!!!현재 미사용!!!!!!!!!!!!!!!!
     calculate distance matrix for multi pages...
     성능 향상을 위해서 numba 패키지 활용
     ======================================================================
@@ -108,6 +109,7 @@ def distance_matrix(mat_x , search_win  , search_size : int , neighbor_size : in
 
 def cal_dns_mat_multi(sliced_array, search_size : int =SEARCH_SIZE, neighbor_size : int =NEIGHBOR_SIZE) :
     """
+    !!!!!!!!!!!!!현재 미사용!!!!!!!!!!!!!!!!
     matrix array에 대한 dns 계산하여 np array (SEARCH_SIZE X SEARCH_SIZE X len(ND_LIST)) 를 return
     최초 생성 함수. 
     여러 장의 matrix가 넘어올 경우 개별 matrix에 대한 계산 후 이에 대하여 마지막에 
